@@ -1,11 +1,11 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using TicariERP.Infrastructure.Identity; // Yeni sınıfımızın adresini ekledik
 
 namespace TicariERP.Infrastructure.Persistence;
 
-// Normal DbContext yerine artık IdentityDbContext'ten miras alıyoruz
-public class ErpDbContext : IdentityDbContext<IdentityUser>
+// Artık IdentityUser yerine kendi AppUser sınıfımızı (Ad ve Soyad içeren) kullanıyoruz
+public class ErpDbContext : IdentityDbContext<AppUser>
 {
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options)
     {
