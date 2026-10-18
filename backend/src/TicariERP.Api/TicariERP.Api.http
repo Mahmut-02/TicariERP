@@ -1,6 +1,12 @@
 @TicariERP.Api_HostAddress = http://localhost:5285
 
-GET {{TicariERP.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Yeni Kullanıcı Kaydı Testi
+POST {{TicariERP.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
 
-###
+{
+  "email": "test@ticari.com",
+  "password": "Password123",
+  "firstName": "Mahmut",
+  "lastName": "Aslan"
+}

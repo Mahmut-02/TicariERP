@@ -1,11 +1,8 @@
-using TicariERP.Infrastructure; // Infrastructure katmanını kullanabilmek için ekledik
+using TicariERP.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Kendi yazdığımız altyapı servislerini (veritabanı bağlantısı vb.) sisteme kaydediyoruz
 builder.Services.AddInfrastructureServices(builder.Configuration);
-
-// Controller desteğini servislere ekliyoruz
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -15,12 +12,16 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    // Swagger'a JSON dosyasının tam yerini açıkça belirtiyoruz
+    app.UseSwaggerUI(c => 
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "TicariERP API V1");
+    });
 }
 
-app.UseHttpsRedirection();
+// Terminaldeki sarı HTTPS uyarısını kaldırmak için bu satırı kapattık
+// app.UseHttpsRedirection(); 
 
-// Gelen istekleri Controller'lara yönlendiriyoruz
 app.MapControllers();
 
 app.Run();
