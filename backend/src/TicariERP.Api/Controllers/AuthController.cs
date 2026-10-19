@@ -17,35 +17,35 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        var isSuccess = await _authService.RegisterAsync(
-            request.Email, 
-            request.Password, 
-            request.FirstName, 
-            request.LastName);
-
-        if (isSuccess)
-        {
-            return Ok(new { message = "Kullanıcı başarıyla oluşturuldu." });
-        }
-
-        return BadRequest(new { message = "Kullanıcı oluşturulamadı. E-posta adresi zaten kayıtlı veya şifre kurallara uymuyor olabilir." });
+        var isSuccess = await _authService.RegisterAsync(request.Email, request.Password, request.FirstName, request.LastName);
+        if (isSuccess) return Ok(new { message = "Kullanıcı başarıyla oluşturuldu." });
+        return BadRequest(new { message = "Kullanıcı oluşturulamadı. E-posta kayıtlı veya şifre zayıf." });
     }
 
-    // YENİ EKLENEN GİRİŞ (LOGIN) METODU
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        // Gelen e-posta ve şifreyi mutfağa (AuthService) gönderip Token istiyoruz
         var token = await _authService.LoginAsync(request.Email, request.Password);
+        if (string.IsNullOrEmpty(token)) return Unauthorized(new { message = "E-posta veya şifre hatalı." });
+        return Ok(new { token = token });
+    }
 
-        // Eğer dönen token boşsa, şifre/email yanlış demektir
-        if (string.IsNullOrEmpty(token))
-        {
-            return Unauthorized(new { message = "E-posta veya şifre hatalı." }); // HTTP 401
-        }
+    // YENİ: Rol Oluşturma Metodu
+    [HttpPost("create-role")]
+    public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
+    {
+        var isSuccess = await _authService.CreateRoleAsync(request.RoleName);
+        if (isSuccess) return Ok(new { message = $"'{request.RoleName}' rolü başarıyla oluşturuldu." });
+        return BadRequest(new { message = "Rol oluşturulurken bir hata oluştu." });
+    }
 
-        // Başarılıysa üretilen uzun şifreli metni (JWT) JSON olarak geri dönüyoruz
-        return Ok(new { token = token }); // HTTP 200
+    // YENİ: Kullanıcıya Rol Atama Metodu
+    [HttpPost("assign-role")]
+    public async Task<IActionResult> AssignRole([FromBody] AssignRoleRequest request)
+    {
+        var isSuccess = await _authService.AssignRoleAsync(request.Email, request.RoleName);
+        if (isSuccess) return Ok(new { message = $"'{request.RoleName}' rolü, {request.Email} kullanıcısına atandı." });
+        return BadRequest(new { message = "Rol atanamadı. Kullanıcı veya rol bulunamadı." });
     }
 }
 
@@ -57,9 +57,20 @@ public class RegisterRequest
     public string LastName { get; set; } = string.Empty;
 }
 
-// YENİ EKLENEN GİRİŞ TAŞIYICI SINIFI
 public class LoginRequest
 {
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+}
+
+// YENİ: Rol Taşıyıcı Sınıfları
+public class CreateRoleRequest
+{
+    public string RoleName { get; set; } = string.Empty;
+}
+
+public class AssignRoleRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string RoleName { get; set; } = string.Empty;
 }
