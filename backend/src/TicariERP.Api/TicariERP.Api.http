@@ -1,6 +1,6 @@
 @TicariERP.Api_HostAddress = http://localhost:5285
 
-### Yeni Kullanıcı Kaydı Testi
+### Yeni Kullanıcı Kaydı Testi (Önceki adımda yapmıştık)
 POST {{TicariERP.Api_HostAddress}}/api/auth/register
 Content-Type: application/json
 
@@ -9,4 +9,13 @@ Content-Type: application/json
   "password": "Password123",
   "firstName": "Mahmut",
   "lastName": "Aslan"
+}
+
+### GİRİŞ YAPMA (LOGIN) TESTİ
+POST {{TicariERP.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@ticari.com",
+  "password": "Password123"
 }

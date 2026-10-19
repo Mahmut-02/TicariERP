@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using TicariERP.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,20 +10,36 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// YENİ EKLENEN: Güvenlik Görevlisi (JWT Doğrulama Ayarları)
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+    });
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    // Swagger'a JSON dosyasının tam yerini açıkça belirtiyoruz
     app.UseSwaggerUI(c => 
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "TicariERP API V1");
     });
 }
 
-// Terminaldeki sarı HTTPS uyarısını kaldırmak için bu satırı kapattık
-// app.UseHttpsRedirection(); 
+// YENİ EKLENEN: Kimlik kontrolü ve yetki duvarını aktif et
+app.UseAuthentication(); 
+app.UseAuthorization();
 
 app.MapControllers();
 
