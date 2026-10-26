@@ -9,6 +9,8 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<TicariERP.Application.Interfaces.IProductRepository, TicariERP.Infrastructure.Repositories.ProductRepository>();
+builder.Services.AddScoped<TicariERP.Application.Interfaces.IProductService, TicariERP.Application.Services.ProductService>();
 
 // YENİ EKLENEN: Güvenlik Görevlisi (JWT Doğrulama Ayarları)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
