@@ -65,4 +65,23 @@ public class ProductService : IProductService
         await _repository.DeleteAsync(product);
         return true;
     }
+
+    public async Task<ProductResponseDto?> UpdateAsync(UpdateProductDto dto)
+{
+    var product = await _repository.GetByIdAsync(dto.Id);
+    if (product == null) return null;
+
+    product.Name = dto.Name;
+    product.Description = dto.Description;
+    product.Price = dto.Price;
+    product.StockQuantity = dto.StockQuantity;
+
+    await _repository.UpdateAsync(product);
+
+    return new ProductResponseDto
+    {
+        Id = product.Id, Name = product.Name, Description = product.Description,
+        Price = product.Price, StockQuantity = product.StockQuantity, CreatedDate = product.CreatedDate
+    };
+}
 }

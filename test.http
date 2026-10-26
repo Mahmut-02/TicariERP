@@ -1,0 +1,15 @@
+### Yeni Ürün Ekleme İsteği
+POST http://localhost:5285/api/Products
+Content-Type: application/json
+
+{
+  "name": "Oyuncu Klavyesi",
+  "description": "Mekanik RGB Klavye",
+  "price": 1250.00,
+  "stockQuantity": 25
+}
+
+###
+
+### Tüm Ürünleri Listeleme İsteği
+GET http://localhost:5285/api/Products
