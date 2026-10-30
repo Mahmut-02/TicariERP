@@ -8,6 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactApp", policy => 
+        policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod());
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<TicariERP.Application.Interfaces.IProductRepository, TicariERP.Infrastructure.Repositories.ProductRepository>();
@@ -32,6 +37,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
+app.UseCors("ReactApp");
 app.UseMiddleware<TicariERP.Api.Middlewares.ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
