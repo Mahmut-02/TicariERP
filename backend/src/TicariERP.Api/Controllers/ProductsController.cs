@@ -10,22 +10,24 @@ namespace TicariERP.Api.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
-    private readonly IValidator<CreateProductDto> _validator;
+    private readonly IValidator<CreateProductDto> _createValidator;
+    private readonly IValidator<UpdateProductDto> _updateValidator;
 
-    public ProductsController(IProductService productService, IValidator<CreateProductDto> validator)
+    public ProductsController(IProductService productService, IValidator<CreateProductDto> createValidator, IValidator<UpdateProductDto> updateValidator)
     {
         _productService = productService;
-        _validator = validator; // Garson artık kural kitabını biliyor
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(CreateProductDto dto)
     {
-        // 1. Gelen siparişi kural kitabına göre denetle
-        var validationResult = await _validator.ValidateAsync(dto);
+        // Gelen siparişi ekleme kurallarına göre denetle
+        var validationResult = await _createValidator.ValidateAsync(dto);
         if (!validationResult.IsValid)
         {
-            return BadRequest(validationResult.Errors); // Hatalıysa mutfağa sokma, hatayı geri fırlat
+            return BadRequest(validationResult.Errors);
         }
 
         var result = await _productService.CreateAsync(dto);
@@ -50,6 +52,13 @@ public class ProductsController : ControllerBase
     [HttpPut]
     public async Task<IActionResult> Update(UpdateProductDto dto)
     {
+        // Gelen siparişi güncelleme kurallarına göre denetle
+        var validationResult = await _updateValidator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(validationResult.Errors);
+        }
+
         var result = await _productService.UpdateAsync(dto);
         if (result == null) return NotFound();
         return Ok(result);
@@ -62,5 +71,4 @@ public class ProductsController : ControllerBase
         if (!result) return NotFound();
         return NoContent(); // 204 No Content (Başarıyla silindi)
     }
-
 }
