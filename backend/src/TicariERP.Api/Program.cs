@@ -3,6 +3,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TicariERP.Infrastructure;
 using FluentValidation;
+using TicariERP.Application.Interfaces;
+using TicariERP.Application.Services;
+using TicariERP.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +21,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<TicariERP.Application.Interfaces.IProductRepository, TicariERP.Infrastructure.Repositories.ProductRepository>();
 builder.Services.AddScoped<TicariERP.Application.Interfaces.IProductService, TicariERP.Application.Services.ProductService>();
 builder.Services.AddValidatorsFromAssemblyContaining<TicariERP.Application.Validators.CreateProductDtoValidator>();
-
+// Cari Hesaplar modülü bağımlılık kayıtları (IoC Container)
+builder.Services.AddScoped<ICurrentAccountRepository, CurrentAccountRepository>();
+builder.Services.AddScoped<ICurrentAccountService, CurrentAccountService>();
 // YENİ EKLENEN: Güvenlik Görevlisi (JWT Doğrulama Ayarları)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

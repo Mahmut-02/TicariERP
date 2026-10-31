@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout';
 import ProductsPage from './features/products/pages/ProductsPage';
+import CurrentAccountsPage from './features/currentAccounts/pages/CurrentAccountsPage'; // Yeni ekledik
 
 function App() {
   return (
@@ -8,7 +9,8 @@ function App() {
       <Routes>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<ProductsPage />} />
-          <Route path="cariler" element={<h2>Cari Hesaplar Sayfası (Yapım Aşamasında)</h2>} />
+          {/* Yapım aşamasında yazısını sildik, gerçek sayfayı bağladık */}
+          <Route path="cariler" element={<CurrentAccountsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

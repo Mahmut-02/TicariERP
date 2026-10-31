@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TicariERP.Infrastructure.Identity;
-using TicariERP.Domain.Entities; // YENİ: Domain katmanındaki Entity'leri kullanabilmek için ekledik
+using TicariERP.Domain.Entities;
 
 namespace TicariERP.Infrastructure.Persistence;
 
@@ -12,6 +12,17 @@ public class ErpDbContext : IdentityDbContext<AppUser, IdentityRole, string>
     {
     }
 
-    // YENİ: Ürünler tablomuzu veritabanına tanıtıyoruz
     public DbSet<Product> Products { get; set; }
+    
+    // YENİ: Cari Hesaplar tablosunu veritabanına tanıtıyoruz
+    public DbSet<CurrentAccount> CurrentAccounts { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // ÖNEMLİ: Identity (Kullanıcı/Rol) tablolarının sorunsuz oluşması için base metodu mutlaka çağırmalıyız.
+        base.OnModelCreating(modelBuilder);
+
+        // YENİ: Configurations klasörüne yazdığımız kısıtlamaları (CurrentAccountConfiguration) otomatik uygular.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ErpDbContext).Assembly);
+    }
 }
