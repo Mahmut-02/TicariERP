@@ -24,6 +24,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<TicariERP.Application.Valid
 // Cari Hesaplar modülü bağımlılık kayıtları (IoC Container)
 builder.Services.AddScoped<ICurrentAccountRepository, CurrentAccountRepository>();
 builder.Services.AddScoped<ICurrentAccountService, CurrentAccountService>();
+// Siparişler modülü bağımlılık kayıtları
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 // YENİ EKLENEN: Güvenlik Görevlisi (JWT Doğrulama Ayarları)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
