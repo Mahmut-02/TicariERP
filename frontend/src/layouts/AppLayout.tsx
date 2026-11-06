@@ -1,57 +1,100 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 export default function AppLayout() {
-  // Şu an hangi sayfada olduğumu anlamak için React Router'ın useLocation kancasını kullanıyorum.
-  // Bu sayede sol menüde aktif olan sayfayı farklı renkte boyayabileceğim.
   const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Giriş yapan kullanıcının bilgilerini tutacağımız alanlar
+  const [userName, setUserName] = useState('Kullanıcı');
+  const [userInitials, setUserInitials] = useState('U');
 
-  // Menüdeki linklerin tasarımı. Eğer aktif sayfadaysam arka planı hafif aydınlatıp yazıyı beyaz yapıyorum.
-  const navItemStyle = (path: string) => ({
-    display: 'block',
-    padding: '12px 20px',
-    color: location.pathname === path ? '#ffffff' : '#94a3b8',
-    backgroundColor: location.pathname === path ? '#334155' : 'transparent',
-    textDecoration: 'none',
-    borderRadius: '6px',
-    marginBottom: '8px',
-    fontWeight: location.pathname === path ? 'bold' : 'normal',
-    transition: 'all 0.2s',
-    fontSize: '0.95rem'
-  });
+  // Sayfa yüklendiğinde Token'ı parçalayıp içindeki ismi alıyoruz
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        // .NET'in token içine gömdüğü isim alanını buluyoruz
+        const name = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || 'Sistem Yöneticisi';
+        setUserName(name);
+        
+        // İsmin baş harflerini alıyoruz (Örn: Mahmut Aslan -> MA)
+        const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+        setUserInitials(initials);
+      } catch (error) {
+        console.error("Token okunamadı.");
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  const getNavClass = (path: string) => {
+    const isActive = location.pathname === path;
+    return `block px-4 py-3 mb-2 rounded-xl transition-all duration-300 ${
+      isActive 
+        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 font-medium' 
+        : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+    }`;
+  };
 
   return (
-    // Tüm ekranı kaplayan, arka planı açık gri (slate-100) olan ana kapsayıcı.
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f1f5f9', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    // Arka planı daha yumuşak bir gri yaptık (bg-slate-100)
+    <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
       
-      {/* Sol Menü (Sidebar) - Koyu lacivert/gri tonlarında */}
-      <div style={{ width: '260px', backgroundColor: '#1e293b', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-        <h1 style={{ fontSize: '1.5rem', color: '#f8fafc', borderBottom: '1px solid #334155', paddingBottom: '15px', marginBottom: '25px', marginTop: 0 }}>
-          Ticari<span style={{ color: '#3b82f6' }}>ERP</span>
-        </h1>
-        <nav>
-          <Link to="/" style={navItemStyle('/')}>📦 Ürün Yönetimi</Link>
-          <Link to="/cariler" style={navItemStyle('/cariler')}>👥 Cari Hesaplar</Link>
+      <div className="w-72 bg-[#0f172a] text-white flex flex-col shadow-2xl z-20">
+        <div className="p-8 pb-4">
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            Ticari<span className="text-blue-500">ERP</span>
+          </h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium tracking-wider uppercase">Yönetim Paneli</p>
+        </div>
+
+        <nav className="flex-1 px-4 mt-6">
+          <Link to="/" className={getNavClass('/')}>
+            <span className="mr-3 opacity-80">📊</span> Özet
+          </Link>
+          <Link to="/urunler" className={getNavClass('/urunler')}>
+            <span className="mr-3 opacity-80">📦</span> Ürün Yönetimi
+          </Link>
+          <Link to="/cariler" className={getNavClass('/cariler')}>
+            <span className="mr-3 opacity-80">👥</span> Cari Hesaplar
+          </Link>
+          <Link to="/siparisler" className={getNavClass('/siparisler')}>
+            <span className="mr-3 opacity-80">🛒</span> Siparişler
+          </Link>
         </nav>
+
+        {/* DİNAMİK KULLANICI PROFİLİ */}
+        <div className="p-4 m-4 bg-slate-800/50 rounded-2xl flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold shadow-lg">
+            {userInitials}
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-sm font-medium text-slate-200 truncate">{userName}</p>
+            <p className="text-xs text-slate-500 truncate">Sistem Yöneticisi</p>
+          </div>
+        </div>
       </div>
 
-      {/* Sağ Taraf - Üst Bar ve Ana İçerik Alanı */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        
-        {/* Üst Bar (Header) - Beyaz arka plan ve hafif gölgeli */}
-        <header style={{ backgroundColor: '#ffffff', padding: '20px 30px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}>
-          <div style={{ fontWeight: 'bold', color: '#475569', fontSize: '0.9rem' }}>
-            Şirket: Merkez Şube | Dönem: 2026
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+        <header className="px-10 py-6 flex justify-between items-center bg-slate-100/80 backdrop-blur-sm z-10">
+          <div className="text-sm font-medium text-slate-500">
+            Şirket: Merkez Şube &nbsp;•&nbsp; Dönem: 2026
           </div>
-          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            <span style={{ backgroundColor: '#f1f5f9', padding: '8px 15px', borderRadius: '20px', fontSize: '0.85rem', color: '#475569', fontWeight: 'bold', border: '1px solid #e2e8f0' }}>
-              👤 Muhammed Enes
-            </span>
-          </div>
+          <button onClick={handleLogout} className="px-5 py-2.5 bg-white text-slate-600 text-sm font-medium rounded-full shadow-sm hover:shadow hover:text-blue-600 transition-all cursor-pointer">
+            Oturumu Kapat
+          </button>
         </header>
         
-        {/* Değişen Sayfaların Geleceği Ana Alan */}
-        <main style={{ padding: '30px', overflowY: 'auto', flex: 1 }}>
-          <Outlet />
+        <main className="flex-1 overflow-y-auto px-10 pb-10">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

@@ -56,7 +56,8 @@ export default function CurrentAccountsPage() {
         if (err.response?.data && Array.isArray(err.response.data)) {
           setErrors(err.response.data.map((x: any) => x.errorMessage));
         } else {
-          setErrors(["Sunucuyla iletişim kuramadım. API ayakta mı?"]);
+          
+          setErrors(["İşlem başarısız oldu. Lütfen girdiğiniz bilgileri (özellikle uzunluk sınırlarını) kontrol edin."]); 
         }
       });
   };
@@ -143,6 +144,7 @@ export default function CurrentAccountsPage() {
             <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px', fontWeight: 'bold' }}>Vergi No / TCKN</label>
             <input 
               type="text" 
+              maxLength={11} // YENİ EKLENDİ (En fazla 11 karakter girilebilir)
               value={formData.taxNumber} onChange={e => setFormData({...formData, taxNumber: e.target.value})}
               style={{ padding: '10px', width: '100%', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none' }}
             />
