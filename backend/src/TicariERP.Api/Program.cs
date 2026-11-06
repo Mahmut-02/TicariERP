@@ -6,6 +6,10 @@ using FluentValidation;
 using TicariERP.Application.Interfaces;
 using TicariERP.Application.Services;
 using TicariERP.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +50,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
     });
+// Auth (Güvenlik) servisini kaydediyoruz
+builder.Services.AddScoped<IAuthService, TicariERP.Infrastructure.Services.AuthService>();
+
+// Eğer yoksa Identity yapılandırmasını ekle:
+builder.Services.AddIdentity<TicariERP.Infrastructure.Identity.AppUser, Microsoft.AspNetCore.Identity.IdentityRole>()
+    .AddEntityFrameworkStores<TicariERP.Infrastructure.Persistence.ErpDbContext>()
+    .AddDefaultTokenProviders();
 
 var app = builder.Build();
 
