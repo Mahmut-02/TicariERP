@@ -67,6 +67,9 @@ export default function AppLayout() {
           <Link to="/siparisler" className={getNavClass('/siparisler')}>
             <span className="mr-3 opacity-80">🛒</span> Siparişler
           </Link>
+          <Link to="/ayarlar" className={getNavClass('/ayarlar')}>
+            <span className="mr-3 opacity-80">⚙️</span> Ayarlar
+          </Link>
         </nav>
 
         {/* DİNAMİK KULLANICI PROFİLİ */}

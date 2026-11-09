@@ -4,7 +4,8 @@ import DashboardPage from './features/dashboard/pages/DashboardPage';
 import ProductsPage from './features/products/pages/ProductsPage';
 import CurrentAccountsPage from './features/currentAccounts/pages/CurrentAccountsPage';
 import OrdersPage from './features/orders/pages/OrdersPage';
-import LoginPage from './features/auth/pages/LoginPage'; // YENİ EKLENDİ
+import LoginPage from './features/auth/pages/LoginPage'; 
+import SettingsPage from './features/settings/pages/SettingsPage';
 
 // Tarayıcının hafızasında token (bilet) var mı diye bakan küçük koruma kalkanı
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -28,6 +29,7 @@ function App() {
           <Route path="urunler" element={<ProductsPage />} />
           <Route path="cariler" element={<CurrentAccountsPage />} />
           <Route path="siparisler" element={<OrdersPage />} />
+          <Route path="/ayarlar" element={<SettingsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
