@@ -1,11 +1,9 @@
+using TicariERP.Application.DTOs.Auth;
+
 namespace TicariERP.Application.Interfaces;
 
 public interface IAuthService
 {
-    Task<bool> RegisterAsync(string email, string password, string firstName, string lastName);
-    Task<string> LoginAsync(string email, string password);
-    
-    // YENİ EKLENENLER: Rol Yönetimi
-    Task<bool> CreateRoleAsync(string roleName);
-    Task<bool> AssignRoleAsync(string email, string roleName);
+    Task<string> RegisterAsync(RegisterDto dto);
+    Task<string> LoginAsync(LoginDto dto);
 }

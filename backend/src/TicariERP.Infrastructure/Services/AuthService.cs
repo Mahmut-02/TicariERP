@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using TicariERP.Application.DTOs.Auth;
 using TicariERP.Application.Interfaces;
 using TicariERP.Infrastructure.Identity;
 
@@ -12,74 +13,67 @@ namespace TicariERP.Infrastructure.Services;
 public class AuthService : IAuthService
 {
     private readonly UserManager<AppUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager; // YENİ: Rol yöneticisi
     private readonly IConfiguration _configuration;
 
-    public AuthService(UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+    public AuthService(UserManager<AppUser> userManager, IConfiguration configuration)
     {
         _userManager = userManager;
-        _roleManager = roleManager; // YENİ EKLENDİ
         _configuration = configuration;
     }
 
-    public async Task<bool> RegisterAsync(string email, string password, string firstName, string lastName)
+    public async Task<string> RegisterAsync(RegisterDto dto)
     {
-        var user = new AppUser { UserName = email, Email = email, FirstName = firstName, LastName = lastName };
-        var result = await _userManager.CreateAsync(user, password);
-        return result.Succeeded;
-    }
-
-    public async Task<string> LoginAsync(string email, string password)
-    {
-        var user = await _userManager.FindByEmailAsync(email);
-        if (user == null || !await _userManager.CheckPasswordAsync(user, password)) return string.Empty;
-
-        // Kullanıcının sahip olduğu rolleri veritabanından alıyoruz
-        var userRoles = await _userManager.GetRolesAsync(user);
-
-        var claims = new List<Claim>
+        var user = new AppUser
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Email, user.Email!),
-            new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}")
+            UserName = dto.Email,
+            Email = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName
         };
 
-        // Kullanıcının rollerini Token'a (Kimlik Kartına) ekliyoruz
-        foreach (var role in userRoles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
-
-        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]!);
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddHours(2),
-            Issuer = _configuration["Jwt:Issuer"],
-            Audience = _configuration["Jwt:Audience"],
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
-    }
-
-    // YENİ: Veritabanında yeni bir rol oluşturur (Örn: "Admin")
-    public async Task<bool> CreateRoleAsync(string roleName)
-    {
-        if (await _roleManager.RoleExistsAsync(roleName)) return true;
-        var result = await _roleManager.CreateAsync(new IdentityRole(roleName));
-        return result.Succeeded;
-    }
-
-    // YENİ: Kullanıcıya rol atar
-    public async Task<bool> AssignRoleAsync(string email, string roleName)
-    {
-        var user = await _userManager.FindByEmailAsync(email);
-        if (user == null || !await _roleManager.RoleExistsAsync(roleName)) return false;
+        var result = await _userManager.CreateAsync(user, dto.Password);
         
-        var result = await _userManager.AddToRoleAsync(user, roleName);
-        return result.Succeeded;
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            throw new Exception($"Kayıt başarısız: {errors}");
+        }
+        
+        return "Kullanıcı başarıyla oluşturuldu.";
+    }
+
+    public async Task<string> LoginAsync(LoginDto dto)
+    {
+        var user = await _userManager.FindByEmailAsync(dto.Email);
+        if (user == null) throw new Exception("Kullanıcı bulunamadı.");
+
+        var isPasswordValid = await _userManager.CheckPasswordAsync(user, dto.Password);
+        if (!isPasswordValid) throw new Exception("Şifre hatalı.");
+
+        return GenerateJwtToken(user);
+    }
+
+    private string GenerateJwtToken(AppUser user)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+            new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddDays(1),
+            signingCredentials: creds
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

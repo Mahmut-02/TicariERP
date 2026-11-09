@@ -17,6 +17,10 @@ public class ErpDbContext : IdentityDbContext<AppUser, IdentityRole, string>
     // YENİ: Cari Hesaplar tablosunu veritabanına tanıtıyoruz
     public DbSet<CurrentAccount> CurrentAccounts { get; set; }
 
+    // YENİ EKLENENLER: Sipariş ve Sipariş Detay tablolarımı veritabanına tanıtıyorum.
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderDetail> OrderDetails { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // ÖNEMLİ: Identity (Kullanıcı/Rol) tablolarının sorunsuz oluşması için base metodu mutlaka çağırmalıyız.
