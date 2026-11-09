@@ -44,17 +44,29 @@ public class CurrentAccountsController : ControllerBase
         return Ok(new { Message = "Cari hesap başarıyla eklendi." });
     }
 
-    [HttpPut]
-    public async Task<IActionResult> Update([FromBody] UpdateCurrentAccountDto dto)
+    // 1. DÜZELTME: React'ten gelen URL'deki "{id}" parametresi eklendi
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCurrentAccountDto dto)
     {
+        // Gelen id'yi DTO içindeki Id'ye eşitliyoruz ki servis hangi kaydı güncelleyeceğini bilsin
+        dto.Id = id;
         await _currentAccountService.UpdateAsync(dto);
         return Ok(new { Message = "Cari hesap başarıyla güncellendi." });
     }
 
+    // 2. DÜZELTME: 500 Hatasını önlemek için Try-Catch bloğu eklendi
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _currentAccountService.DeleteAsync(id);
-        return Ok(new { Message = "Cari hesap başarıyla silindi." });
+        try
+        {
+            await _currentAccountService.DeleteAsync(id);
+            return Ok(new { Message = "Cari hesap başarıyla silindi." });
+        }
+        catch (Exception)
+        {
+            // Veritabanı "Silinemez!" diye bağırırsa sistem çökmeyecek, Frontend'e bu uyarıyı gönderecek:
+            return BadRequest(new { Message = "Bu müşteriye ait kesilmiş faturalar var! Silmek için önce faturaları iptal etmelisiniz." });
+        }
     }
 }

@@ -74,4 +74,13 @@ public class OrderService : IOrderService
         // 6. Hazırlanan dolu fişi kaydetmesi için kilerciye yolluyorum
         await _orderRepository.AddAsync(order);
     }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var order = await _orderRepository.GetByIdAsync(id);
+        if (order != null)
+        {
+            await _orderRepository.DeleteAsync(order);
+        }
+    }
 }

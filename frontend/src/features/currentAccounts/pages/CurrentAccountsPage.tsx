@@ -27,13 +27,17 @@ export default function CurrentAccountsPage() {
         .then(() => {
           fetchAccounts();
           resetForm();
-        });
+        })
+        // YENİ: Güncelleme hatasını ekrana yansıtma eklendi
+        .catch(err => alert("Güncelleme başarısız: " + (err.response?.data?.message || err.message))); 
     } else {
       axios.post('http://localhost:5285/api/CurrentAccounts', payload)
         .then(() => {
           fetchAccounts();
           resetForm();
-        });
+        })
+        // YENİ: Ekleme hatasını ekrana yansıtma eklendi
+        .catch(err => alert("Kayıt başarısız: " + (err.response?.data?.message || err.message)));
     }
   };
 

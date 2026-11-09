@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TicariERP.Application.DTOs.Orders;
 using TicariERP.Application.Interfaces;
+using System;
 
 namespace TicariERP.Api.Controllers;
 
@@ -29,7 +30,24 @@ public class OrdersController : ControllerBase
         // FluentValidation bu aşamada devreye girip hem ana siparişi hem de içindeki ürün kalemlerini kontrol eder.
         // Hata yoksa sipariş oluşturulur, stoklar düşülür ve veritabanına kaydedilir.
         await _orderService.AddAsync(dto);
-        
+
         return Ok(new { Message = "Sipariş başarıyla oluşturuldu ve stoklar güncellendi." });
+    }
+
+    // YENİ EKLENEN KISIM: React (Frontend) tarafındaki "İptal Et / Sil" butonunu karşılayacak olan metot
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        try
+        {
+            // Siparişi silmek için servise yönlendiriyoruz (Serviste DeleteAsync metodu eklenmiş olmalı)
+            await _orderService.DeleteAsync(id);
+            return Ok(new { Message = "Sipariş / Fatura başarıyla silindi." });
+        }
+        catch (Exception ex)
+        {
+            // Silme işleminde bir hata oluşursa Frontend'i kitlemeden uyarı veriyoruz
+            return BadRequest(new { Message = "Sipariş silinirken hata oluştu: " + ex.Message });
+        }
     }
 }

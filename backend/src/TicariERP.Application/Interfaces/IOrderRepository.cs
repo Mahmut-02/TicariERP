@@ -1,4 +1,5 @@
 using TicariERP.Domain.Entities;
+using TicariERP.Domain.Entities;
 
 namespace TicariERP.Application.Interfaces;
 
@@ -8,4 +9,6 @@ public interface IOrderRepository
     Task<IEnumerable<Order>> GetAllOrdersWithDetailsAsync();
     Task<Order?> GetOrderByIdWithDetailsAsync(Guid id);
     Task AddAsync(Order order);
+    Task<Order> GetByIdAsync(Guid id);
+    Task DeleteAsync(Order order);
 }

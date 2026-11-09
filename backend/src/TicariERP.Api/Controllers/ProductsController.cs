@@ -49,9 +49,13 @@ public class ProductsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPut]
-    public async Task<IActionResult> Update(UpdateProductDto dto)
+    // 1. DÜZELTME: React'ten gelen URL'deki "{id}" parametresi eklendi ve Guid id içeri alındı
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductDto dto)
     {
+        // Gelen id'yi DTO içindeki Id'ye eşitliyoruz ki servis hangi kaydı güncelleyeceğini bilsin
+        dto.Id = id;
+
         // Gelen siparişi güncelleme kurallarına göre denetle
         var validationResult = await _updateValidator.ValidateAsync(dto);
         if (!validationResult.IsValid)
@@ -64,11 +68,20 @@ public class ProductsController : ControllerBase
         return Ok(result);
     }
 
+    // 2. DÜZELTME: 500 Hatasını önlemek için Try-Catch bloğu eklendi
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var result = await _productService.DeleteAsync(id);
-        if (!result) return NotFound();
-        return NoContent(); // 204 No Content (Başarıyla silindi)
+        try
+        {
+            var result = await _productService.DeleteAsync(id);
+            if (!result) return NotFound();
+            return NoContent(); // 204 No Content (Başarıyla silindi)
+        }
+        catch (Exception)
+        {
+            // Veritabanı kilidini (500 hatasını) burada yakalayıp 400 Bad Request'e çeviriyoruz
+            return BadRequest(new { message = "Bu ürün geçmiş faturalarda kullanıldığı için silinemez! Önce ilgili faturaları iptal edin." });
+        }
     }
 }
