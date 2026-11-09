@@ -1,221 +1,156 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function CurrentAccountsPage() {
-  // Backend'den çektiğim cari hesapların listesini bu state içinde tutuyorum.
   const [accounts, setAccounts] = useState<any[]>([]);
-  
-  // API'den veya kural kitabından (FluentValidation) dönen kırmızı hata mesajlarını burada biriktiriyorum.
-  const [errors, setErrors] = useState<string[]>([]);
-  
-  // Formda düzenleme mi yapıyorum yoksa yeni kayıt mı ekliyorum? Bunu bilmem lazım.
-  // Eğer bu değer 'true' ise, form butonu 'Güncelle' olarak değişecek.
-  const [isEditing, setIsEditing] = useState(false);
-  
-  // Form içindeki input alanlarımı bu state'e bağladım.
-  // Güncelleme işlemi yapabilmek için 'id' alanını da buraya ekledim. Yeni eklemede 'id' boş kalacak.
-  const [formData, setFormData] = useState({
-    id: '',
-    code: '',
-    name: '',
-    type: 'Müşteri', // Kullanıcı seçmezse varsayılan olarak Müşteri gitsin.
-    taxOffice: '',
-    taxNumber: '',
-    address: ''
-  });
+  const [name, setName] = useState('');
+  const [taxNumber, setTaxNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [editId, setEditId] = useState<number | null>(null);
 
-  // Garsona (API'ye) seslenip veritabanımdaki tüm carileri getirmesini istiyorum.
   const fetchAccounts = () => {
     axios.get('http://localhost:5285/api/CurrentAccounts')
-      .then(response => setAccounts(response.data))
-      .catch(error => console.error("Carileri çekerken sorun yaşadım:", error));
+      .then(res => setAccounts(res.data))
+      .catch(err => console.log(err));
   };
 
-  // Sayfa ilk yüklendiğinde (mount olduğunda) listeyi otomatik çekmesi için useEffect kullanıyorum.
   useEffect(() => {
     fetchAccounts();
   }, []);
 
-  // Formdaki Kaydet / Güncelle butonuna bastığımda burası tetikleniyor.
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // Sayfanın anlamsızca yenilenmesini (refresh) engelliyorum ki verilerim uçmasın.
-    setErrors([]); // Yeni bir işlem denediğim için ekrandaki eski hataları siliyorum.
+    e.preventDefault();
+    const payload = { name, taxNumber, address };
 
-    // Eğer 'isEditing' true ise backend'deki Update (PUT) metoduna, false ise Create (POST) metoduna istek atıyorum.
-    const apiCall = isEditing 
-      ? axios.put('http://localhost:5285/api/CurrentAccounts', formData)
-      : axios.post('http://localhost:5285/api/CurrentAccounts', formData);
-
-    apiCall
-      .then(() => {
-        fetchAccounts(); // İşlem başarılı olduysa ekranı güncellemek için listeyi baştan çekiyorum.
-        resetForm(); // İşlem bittiğine göre form alanlarını temizliyorum.
-      })
-      .catch(err => {
-        // Backend'deki kural kitabıma (FluentValidation) takıldıysam hataları yakalayıp ekrana basıyorum.
-        if (err.response?.data && Array.isArray(err.response.data)) {
-          setErrors(err.response.data.map((x: any) => x.errorMessage));
-        } else {
-          
-          setErrors(["İşlem başarısız oldu. Lütfen girdiğiniz bilgileri (özellikle uzunluk sınırlarını) kontrol edin."]); 
-        }
-      });
-  };
-
-  // Listeden bir kaydı silmek istediğimde burası çalışıyor.
-  const handleDelete = (id: string) => {
-    if (window.confirm("Bu cari hesabı silmek istediğine emin misin?")) {
-      axios.delete(`http://localhost:5285/api/CurrentAccounts/${id}`)
-        .then(() => fetchAccounts()) // Sildikten sonra listeyi güncelliyorum.
-        .catch(err => console.error("Silme işlemi başarısız:", err));
+    if (editId) {
+      axios.put(`http://localhost:5285/api/CurrentAccounts/${editId}`, payload)
+        .then(() => {
+          fetchAccounts();
+          resetForm();
+        });
+    } else {
+      axios.post('http://localhost:5285/api/CurrentAccounts', payload)
+        .then(() => {
+          fetchAccounts();
+          resetForm();
+        });
     }
   };
 
-  // Listeden "Düzenle" butonuna bastığımda o karttaki verileri alıp yukarıdaki forma dolduruyorum.
-  const handleEdit = (account: any) => {
-    setIsEditing(true); // Artık formun bir güncelleme formu olduğunu sisteme söylüyorum.
-    setFormData({
-      id: account.id,
-      code: account.code,
-      name: account.name,
-      type: account.type,
-      taxOffice: account.taxOffice || '',
-      taxNumber: account.taxNumber || '',
-      address: account.address || ''
-    });
+  const handleEdit = (acc: any) => {
+    setEditId(acc.id);
+    setName(acc.name);
+    setTaxNumber(acc.taxNumber);
+    setAddress(acc.address || '');
   };
 
-  // İşi biten veya iptal edilen formu ilk baştaki tertemiz haline döndürüyorum.
-  const resetForm = () => {
-    setIsEditing(false);
-    setFormData({ id: '', code: '', name: '', type: 'Müşteri', taxOffice: '', taxNumber: '', address: '' });
-    setErrors([]);
+  const handleDelete = (id: number) => {
+    if(window.confirm("Bu cari hesabı silmek istediğinize emin misiniz? (Bağlı siparişler varsa hata verebilir)")) {
+      axios.delete(`http://localhost:5285/api/CurrentAccounts/${id}`)
+        .then(() => fetchAccounts())
+        .catch(err => alert("Silme başarısız: " + (err.response?.data?.message || err.message)));
+    }
   };
+
+  const resetForm = () => {
+    setName('');
+    setTaxNumber('');
+    setAddress('');
+    setEditId(null);
+  };
+
+  // Ortak Hover ve Gölge Efektimiz
+  const cardClasses = "bg-white p-6 rounded-2xl shadow-md shadow-slate-200/60 hover:shadow-2xl hover:shadow-slate-300/60 hover:-translate-y-2 transition-all duration-300 ease-out flex flex-col group";
 
   return (
-    <div style={{ color: '#334155' }}>
-      <h2 style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', color: '#0f172a' }}>Cari Hesap Yönetimi</h2>
+    <div className="space-y-8 animate-fade-in">
       
-      {/* Cari Ekleme / Güncelleme Formu */}
-      <div style={{ backgroundColor: '#ffffff', padding: '25px', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', marginBottom: '30px', border: '1px solid #e2e8f0' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1rem', color: isEditing ? '#4f46e5' : '#10b981' }}>
-          {isEditing ? '✏️ Cari Hesabı Düzenle' : '➕ Yeni Cari Hesap Ekle'}
-        </h3>
+      {/* BAŞLIK */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Cari Hesaplar (Müşteriler)</h2>
+      </div>
+
+      {/* FORM BÖLÜMÜ */}
+      <div className="bg-white p-6 rounded-2xl shadow-md shadow-slate-200/60 hover:shadow-lg transition-all duration-300">
+        <h3 className="text-lg font-bold text-slate-700 mb-4">{editId ? "✏️ Cari Hesabı Güncelle" : "✨ Yeni Cari Hesap Ekle"}</h3>
         
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-start' }}>
-          <div style={{ flex: '1 1 200px' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px', fontWeight: 'bold' }}>Cari Kodu</label>
-            <input 
-              type="text" required
-              value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})}
-              style={{ padding: '10px', width: '100%', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none' }}
-            />
-          </div>
-
-          <div style={{ flex: '2 1 300px' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px', fontWeight: 'bold' }}>Unvan / Ad Soyad</label>
-            <input 
-              type="text" required
-              value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-              style={{ padding: '10px', width: '100%', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none' }}
-            />
-          </div>
-
-          <div style={{ flex: '1 1 150px' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px', fontWeight: 'bold' }}>Tip</label>
-            <select 
-              value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}
-              style={{ padding: '10px', width: '100%', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none' }}>
-              <option value="Müşteri">Müşteri</option>
-              <option value="Tedarikçi">Tedarikçi</option>
-            </select>
-          </div>
-
-          <div style={{ flex: '1 1 200px' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px', fontWeight: 'bold' }}>Vergi Dairesi</label>
-            <input 
-              type="text" 
-              value={formData.taxOffice} onChange={e => setFormData({...formData, taxOffice: e.target.value})}
-              style={{ padding: '10px', width: '100%', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none' }}
-            />
-          </div>
-
-          <div style={{ flex: '1 1 200px' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px', fontWeight: 'bold' }}>Vergi No / TCKN</label>
-            <input 
-              type="text" 
-              maxLength={11} // YENİ EKLENDİ (En fazla 11 karakter girilebilir)
-              value={formData.taxNumber} onChange={e => setFormData({...formData, taxNumber: e.target.value})}
-              style={{ padding: '10px', width: '100%', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none' }}
-            />
+        <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+          <div className="flex-1 w-full">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Firma / Kişi Adı</label>
+            <input required type="text" value={name} onChange={e => setName(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-700 font-medium" />
           </div>
           
-          <div style={{ width: '100%', display: 'flex', gap: '10px', marginTop: '10px' }}>
-            <button type="submit" style={{ padding: '12px 20px', backgroundColor: isEditing ? '#4f46e5' : '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', flex: 1, transition: 'background-color 0.2s' }}>
-              {isEditing ? 'Değişiklikleri Kaydet' : 'Kaydet'}
+          <div className="flex-1 w-full">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">VKN / TCKN</label>
+            <input required type="text" value={taxNumber} onChange={e => setTaxNumber(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-700 font-medium" />
+          </div>
+
+          <div className="flex-1 w-full">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Açık Adres (Opsiyonel)</label>
+            <input type="text" value={address} onChange={e => setAddress(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-700 font-medium" />
+          </div>
+          
+          <div className="w-full md:w-auto flex gap-2">
+            <button type="submit"
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/30 hover:shadow-lg hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all duration-300 w-full md:w-auto">
+              {editId ? "Güncelle" : "Kaydet"}
             </button>
-            {isEditing && (
-              <button type="button" onClick={resetForm} style={{ padding: '12px 20px', backgroundColor: '#94a3b8', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-                İptal Et
+            
+            {editId && (
+              <button type="button" onClick={resetForm}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all duration-300">
+                İptal
               </button>
             )}
           </div>
         </form>
-
-        {/* Hata Mesajları Alanı */}
-        {errors.length > 0 && (
-          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '6px', borderLeft: '4px solid #ef4444' }}>
-            <ul style={{ margin: 0, paddingLeft: '20px' }}>
-              {errors.map((err, index) => <li key={index}>{err}</li>)}
-            </ul>
-          </div>
-        )}
       </div>
 
-      {/* Cari Listesi Grid Yapısı */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-        {accounts.length === 0 ? <p style={{ color: '#64748b' }}>Sistemde henüz kayıtlı cari hesap bulunmuyor.</p> : null}
-        
-        {accounts.map(account => (
-          <div key={account.id} style={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+      {/* MÜŞTERİ KARTLARI LİSTESİ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {accounts.map(acc => (
+          <div key={acc.id} className={cardClasses}>
             
-            {/* Kart Üst Bilgi (Müşteri mi Tedarikçi mi çizgisi) */}
-            <div style={{ height: '4px', backgroundColor: account.type === 'Müşteri' ? '#3b82f6' : '#f59e0b' }}></div>
-            
-            <div style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-                <strong style={{ fontSize: '1.2rem', color: '#1e293b', wordBreak: 'break-word' }}>{account.name}</strong>
-                <span style={{ fontSize: '0.75rem', padding: '4px 10px', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '12px', fontWeight: 'bold', border: '1px solid #cbd5e1' }}>
-                  {account.code}
-                </span>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                  {acc.name.substring(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1" title={acc.name}>{acc.name}</h4>
+                  <div className="text-xs font-bold text-slate-400">VKN/TCKN: <span className="text-slate-600">{acc.taxNumber}</span></div>
+                </div>
               </div>
               
-              <div style={{ fontSize: '0.9rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Kayıt Tipi:</span> <strong>{account.type}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Vergi Dairesi:</span> <span style={{ color: '#0f172a' }}>{account.taxOffice || '-'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Vergi No:</span> <span style={{ color: '#0f172a' }}>{account.taxNumber || '-'}</span>
-                </div>
+              <div className="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-100 line-clamp-2" title={acc.address || 'Adres bilgisi yok'}>
+                📍 {acc.address || 'Adres girilmemiş.'}
               </div>
             </div>
-
-            {/* Kart Alt Butonları (Düzenle / Sil) */}
-            <div style={{ display: 'flex', borderTop: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
-              <button onClick={() => handleEdit(account)} style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', color: '#4f46e5', cursor: 'pointer', fontWeight: 'bold', borderRight: '1px solid #f1f5f9' }}>
+            
+            <div className="flex gap-2 border-t border-slate-100 pt-4 mt-auto">
+              <button onClick={() => handleEdit(acc)}
+                className="flex-1 py-2 bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 text-sm font-bold rounded-lg transition-colors">
                 Düzenle
               </button>
-              <button onClick={() => handleDelete(account.id)} style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', color: '#e11d48', cursor: 'pointer', fontWeight: 'bold' }}>
+              <button onClick={() => handleDelete(acc.id)}
+                className="flex-1 py-2 bg-slate-50 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-sm font-bold rounded-lg transition-colors">
                 Sil
               </button>
             </div>
             
           </div>
         ))}
+        
+        {accounts.length === 0 && (
+          <div className="col-span-full py-10 text-center text-slate-400 font-medium">
+            Henüz hiç cari hesap eklenmemiş.
+          </div>
+        )}
       </div>
+
     </div>
   );
 }
