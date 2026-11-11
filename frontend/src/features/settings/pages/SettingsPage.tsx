@@ -17,8 +17,9 @@ async function getCroppedImg(imageSrc: string, pixelCrop: any): Promise<string> 
 
   if (!ctx) throw new Error('Canvas context oluşturulamadı');
 
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  // Veritabanını ve API'yi yormamak için avatarı 300x300 boyutuna sabitliyoruz
+  canvas.width = 300;
+  canvas.height = 300;
 
   ctx.drawImage(
     image,
@@ -28,16 +29,11 @@ async function getCroppedImg(imageSrc: string, pixelCrop: any): Promise<string> 
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    300,
+    300
   );
 
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((file) => {
-      if (file) resolve(URL.createObjectURL(file));
-      else reject(new Error('Canvas boş'));
-    }, 'image/jpeg');
-  });
+  return canvas.toDataURL('image/jpeg', 0.8);
 }
 
 export default function SettingsPage() {
@@ -68,6 +64,16 @@ export default function SettingsPage() {
         console.error("Token parçalanamadı.");
       }
     }
+
+    // Ayarlar sayfası açıldığında mevcut fotoğrafı veritabanından çek
+      fetch('http://localhost:5285/api/profile/get-photo', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.photo) setPhotoPreview(data.photo);
+      })
+      .catch(err => console.error("Fotoğraf alınamadı:", err));
   }, []);
 
   // --- SÜRÜKLE BIRAK (DRAG & DROP) İŞLEMLERİ ---
@@ -116,9 +122,8 @@ export default function SettingsPage() {
         setPhotoPreview(croppedImage); 
         setImageToCrop(null); 
 
-        // BACKEND'E (VERİTABANINA) GÖNDERME İŞLEMİ
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5285/api/profile/upload-photo', {
+        const response = await fetch('http://localhost:5285/api/Profile/upload-photo', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -131,14 +136,15 @@ export default function SettingsPage() {
           window.dispatchEvent(new Event('profilePhotoChanged'));
           alert("Profil fotoğrafınız veritabanına başarıyla kaydedildi!");
         } else {
-          alert("Fotoğraf kaydedilirken bir hata oluştu.");
+          // GERÇEK HATAYI YAKALAYIP GÖSTERELİM
+          const errorText = await response.text();
+          alert(`Sunucu Hatası (Kod: ${response.status}): ${errorText}`);
         }
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      alert(`Bağlantı Hatası (Backend'e ulaşılamadı): ${e.message}`);
     }
   };
-
   const handleProfileUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     alert("Profil bilgileri (simülasyon) güncellendi. Fotoğraf kalıcılığı Backend'e bağlanacak.");

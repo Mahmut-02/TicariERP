@@ -8,9 +8,23 @@ export default function AppLayout() {
   // Giriş yapan kullanıcının bilgilerini tutacağımız alanlar
   const [userName, setUserName] = useState('Kullanıcı');
   const [userInitials, setUserInitials] = useState('U');
+  const [photo, setPhoto] = useState<string | null>(null);
 
-  // Sayfa yüklendiğinde Token'ı parçalayıp içindeki ismi alıyoruz
+  // Sayfa yüklendiğinde Token'ı parçalayıp içindeki ismi ve veritabanından fotoğrafı alıyoruz
   useEffect(() => {
+    const fetchPhoto = (currentToken: string) => {
+      fetch('http://localhost:5285/api/Profile/get-photo', {
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.photo) {
+          setPhoto(data.photo);
+        }
+      })
+      .catch(err => console.error("Fotoğraf alınamadı:", err));
+    };
+
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -25,7 +39,19 @@ export default function AppLayout() {
       } catch (error) {
         console.error("Token okunamadı.");
       }
+
+      // İlk açılışta fotoğrafı çek
+      fetchPhoto(token);
     }
+
+    // Ayarlar sayfasından yeni fotoğraf kaydedildiğinde anında güncelle
+    const handlePhotoChange = () => {
+      const currentToken = localStorage.getItem('token');
+      if (currentToken) fetchPhoto(currentToken);
+    };
+
+    window.addEventListener('profilePhotoChanged', handlePhotoChange);
+    return () => window.removeEventListener('profilePhotoChanged', handlePhotoChange);
   }, []);
 
   const handleLogout = () => {
@@ -43,7 +69,6 @@ export default function AppLayout() {
   };
 
   return (
-    // Arka planı daha yumuşak bir gri yaptık (bg-slate-100)
     <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
       
       <div className="w-72 bg-[#0f172a] text-white flex flex-col shadow-2xl z-20">
@@ -74,8 +99,12 @@ export default function AppLayout() {
 
         {/* DİNAMİK KULLANICI PROFİLİ */}
         <div className="p-4 m-4 bg-slate-800/50 rounded-2xl flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold shadow-lg">
-            {userInitials}
+          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold shadow-lg overflow-hidden shrink-0">
+            {photo ? (
+              <img src={photo} alt="Profil" className="w-full h-full object-cover" />
+            ) : (
+              userInitials
+            )}
           </div>
           <div className="overflow-hidden">
             <p className="text-sm font-medium text-slate-200 truncate">{userName}</p>
