@@ -76,9 +76,67 @@ public class ProfileController : ControllerBase
 
         return Ok(new { photo = user.ProfilePhoto });
     }
+
+    [HttpPost("update-profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+    {
+        var user = await GetCurrentUserAsync();
+        if (user == null) return NotFound(new { Message = "Kullanıcı bulunamadı." });
+
+        // 1. E-posta Güncellemesi
+        if (user.Email != dto.Email)
+        {
+            await _userManager.SetEmailAsync(user, dto.Email);
+            await _userManager.SetUserNameAsync(user, dto.Email);
+        }
+
+        // 2. İsim Güncellemesi (EKSİK OLAN VE SENİ ESKİ HALİNE DÖNDÜREN KISIM BURASIYDI)
+        // React'ten gelen tek parça metni (Örn: "Mahmut Aslan") ilk boşluktan bölüp veritabanına işliyoruz
+        if (!string.IsNullOrWhiteSpace(dto.Name))
+        {
+            var nameParts = dto.Name.Trim().Split(' ', 2);
+            user.FirstName = nameParts[0];
+            user.LastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
+        }
+
+        var result = await _userManager.UpdateAsync(user);
+
+        if (!result.Succeeded)
+            return BadRequest(new { Message = "Profil bilgileri güncellenemedi." });
+
+        return Ok(new { Message = "Profil bilgileriniz başarıyla güncellendi." });
+    }
+
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        var user = await GetCurrentUserAsync();
+        if (user == null) return NotFound(new { Message = "Kullanıcı bulunamadı." });
+
+        var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+
+        if (!result.Succeeded)
+            return BadRequest(new { Message = "Şifre değiştirilemedi. Mevcut şifrenizi doğru girdiğinizden ve yeni şifrenin kurallara (Büyük harf, sayı vb.) uyduğundan emin olun." });
+
+        return Ok(new { Message = "Şifreniz başarıyla güncellendi." });
+    }
 }
+
+
 
 public class UploadPhotoDto
 {
     public string Photo { get; set; } = string.Empty;
+}
+
+public class UpdateProfileDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+}
+
+public class ChangePasswordDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }

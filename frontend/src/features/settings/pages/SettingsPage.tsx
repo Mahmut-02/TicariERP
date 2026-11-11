@@ -37,8 +37,9 @@ async function getCroppedImg(imageSrc: string, pixelCrop: any): Promise<string> 
 }
 
 export default function SettingsPage() {
-  const [userName, setUserName] = useState('Sistem Yöneticisi');
-  const [email, setEmail] = useState('admin@ticarierp.com');
+  const [userName, setUserName] = useState('');
+  const [email, setEmail] = useState('');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -54,28 +55,50 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    // 1. Token'dan Kesin Bilgileri Çek
+    const rawToken = localStorage.getItem('token');
+    if (rawToken) {
+      const token = rawToken.replace(/"/g, ''); 
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
+        
+        // Konsoldaki röntgene göre isim ve e-posta çekimi:
         const name = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
         if (name) setUserName(name);
+        
+        const userEmail = payload['email'];
+        if (userEmail) setEmail(userEmail);
+        
       } catch (error) {
         console.error("Token parçalanamadı.");
       }
     }
 
-    // Ayarlar sayfası açıldığında mevcut fotoğrafı veritabanından çek
-      fetch('http://localhost:5285/api/profile/get-photo', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.photo) setPhotoPreview(data.photo);
-      })
-      .catch(err => console.error("Fotoğraf alınamadı:", err));
-  }, []);
+    // 2. Fotoğrafı Çek
+    const fetchPhoto = async () => {
+      try {
+        const rawToken = localStorage.getItem('token');
+        const token = rawToken ? rawToken.replace(/"/g, '') : '';
+        
+        const response = await fetch('http://localhost:5285/api/Profile/get-photo', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.photo) {
+            setProfileImage(data.photo); 
+          }
+        }
+      } catch (error) {
+        console.error("Fotoğraf yüklenemedi");
+      }
+    };
 
+    fetchPhoto();
+  }, []);
   // --- SÜRÜKLE BIRAK (DRAG & DROP) İŞLEMLERİ ---
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -145,15 +168,39 @@ export default function SettingsPage() {
       alert(`Bağlantı Hatası (Backend'e ulaşılamadı): ${e.message}`);
     }
   };
-  const handleProfileUpdate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    alert("Profil bilgileri (simülasyon) güncellendi. Fotoğraf kalıcılığı Backend'e bağlanacak.");
+
+  // KİŞİSEL BİLGİLERİ GÜNCELLEME İŞLEMİ
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault(); // Sayfanın yenilenmesini engeller
+    try {
+      const rawToken = localStorage.getItem('token');
+      const token = rawToken ? rawToken.replace(/"/g, '') : '';
+
+      const response = await fetch('http://localhost:5285/api/Profile/update-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          name: userName, 
+          email: email 
+        })
+      });
+
+      if (response.ok) {
+        alert("Bilgileriniz başarıyla güncellendi! (Değişikliklerin navbarda yansıması için yeniden giriş yapmanız gerekebilir)");
+      } else {
+        alert("Bilgiler güncellenirken bir hata oluştu.");
+      }
+    } catch (error) {
+      alert("Bağlantı hatası!");
+    }
   };
 
-  const handlePasswordUpdate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    alert("Şifre güncellendi!");
-  };
+  
+  
+ 
 
   const getInitials = (name: string) => {
     if (!name || name.trim() === '') return 'A';
@@ -231,8 +278,8 @@ export default function SettingsPage() {
                 onDrop={handleDrop}
               >
                 <div className="w-32 h-32 rounded-full bg-white p-1.5 shadow-lg relative z-10">
-                  {photoPreview ? (
-                    <img src={photoPreview} alt="Profil" className="w-full h-full rounded-full object-cover" />
+                  {photoPreview || profileImage ? (
+                    <img src={photoPreview|| profileImage || ''} alt="Profil" className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <div className="w-full h-full rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-4xl shadow-inner">
                       {getInitials(userName)}
