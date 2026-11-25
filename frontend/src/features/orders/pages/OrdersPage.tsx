@@ -33,8 +33,8 @@ export default function OrdersPage() {
     if (!currentAccountId || !productId) return alert("Lütfen müşteri ve ürün seçtiğinizden emin olun.");
 
     const payload = {
-      currentAccountId: Number(currentAccountId),
-      orderItems: [{ productId: Number(productId), quantity: Number(quantity) }]
+      currentAccountId: currentAccountId,
+      orderItems: [{ productId: productId, quantity: Number(quantity) }]
     };
 
     axios.post('http://localhost:5285/api/Orders', payload)
@@ -45,7 +45,6 @@ export default function OrdersPage() {
       })
       .catch(err => alert("Sipariş oluşturulamadı: " + (err.response?.data?.message || err.message)));
   };
-
   const handleDelete = (id: number) => {
     if(window.confirm("Bu siparişi tamamen silmek istediğinize emin misiniz?")) {
       axios.delete(`http://localhost:5285/api/Orders/${id}`)
