@@ -1,0 +1,1 @@
+namespace TicariERP.Application.DTOs.Warehouses;

@@ -13,13 +13,16 @@ public class ErpDbContext : IdentityDbContext<AppUser, IdentityRole, string>
     }
 
     public DbSet<Product> Products { get; set; }
-    
+
     // YENİ: Cari Hesaplar tablosunu veritabanına tanıtıyoruz
     public DbSet<CurrentAccount> CurrentAccounts { get; set; }
 
     // YENİ EKLENENLER: Sipariş ve Sipariş Detay tablolarımı veritabanına tanıtıyorum.
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderDetail> OrderDetails { get; set; }
+
+    public DbSet<Warehouse> Warehouses { get; set; }
+    public DbSet<StockMovement> StockMovements { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,5 +31,30 @@ public class ErpDbContext : IdentityDbContext<AppUser, IdentityRole, string>
 
         // YENİ: Configurations klasörüne yazdığımız kısıtlamaları (CurrentAccountConfiguration) otomatik uygular.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ErpDbContext).Assembly);
+
+        modelBuilder.Entity<Warehouse>(entity =>
+{
+    entity.HasKey(w => w.Id);
+    entity.Property(w => w.Code).IsRequired().HasMaxLength(30);
+    entity.Property(w => w.Name).IsRequired().HasMaxLength(150);
+    entity.HasIndex(w => w.Code).IsUnique();
+});
+
+        modelBuilder.Entity<StockMovement>(entity =>
+        {
+            entity.HasKey(sm => sm.Id);
+            entity.Property(sm => sm.Quantity).HasPrecision(18, 2);
+            entity.Property(sm => sm.ReferenceNo).HasMaxLength(50);
+
+            entity.HasOne(sm => sm.Product)
+                  .WithMany(p => p.StockMovements)
+                  .HasForeignKey(sm => sm.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(sm => sm.Warehouse)
+                  .WithMany(w => w.StockMovements)
+                  .HasForeignKey(sm => sm.WarehouseId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
