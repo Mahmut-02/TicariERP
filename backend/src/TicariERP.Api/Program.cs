@@ -7,6 +7,8 @@ using TicariERP.Application.Interfaces;
 using TicariERP.Application.Services;
 using TicariERP.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
+using TicariERP.Infrastructure.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +39,9 @@ builder.Services.AddScoped<ICurrentAccountService, CurrentAccountService>();
 // Siparişler modülü bağımlılık kayıtları
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 
 // Auth (Güvenlik) servisini kaydediyoruz
 builder.Services.AddScoped<IAuthService, TicariERP.Infrastructure.Services.AuthService>();
