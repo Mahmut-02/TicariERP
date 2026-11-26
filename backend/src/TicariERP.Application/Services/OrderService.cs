@@ -30,10 +30,10 @@ public class OrderService : IOrderService
         {
             Id = orderId,
             CurrentAccountId = dto.CurrentAccountId,
-            OrderDate = dto.OrderDate,
-            // SP-2026-1031-ABCD formatında rastgele, benzersiz bir sipariş numarası üretiyorum.
+            // Tarih boş (01.01.0001) gelirse otomatik şu anki UTC tarihini ata
+            OrderDate = dto.OrderDate == default ? DateTime.UtcNow : dto.OrderDate,
             OrderNumber = $"SP-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}",
-            TotalAmount = 0 // Toplamı birazdan kalemleri dönerken hesaplayacağım
+            TotalAmount = 0
         };
 
         decimal calculatedTotal = 0;
@@ -41,37 +41,36 @@ public class OrderService : IOrderService
         // 2. DTO'nun içindeki sepet kalemlerini (satılan ürünleri) tek tek dönüyorum
         foreach (var detailDto in dto.Details)
         {
-            // Ürünü veritabanından buluyorum
             var product = await _productRepository.GetByIdAsync(detailDto.ProductId);
             if (product == null)
                 throw new Exception("Siparişteki ürünlerden biri sistemde bulunamadı.");
 
-            // 3. İŞ KURALI (Stok Kontrolü): Adamın istediği miktar elimde var mı?
+            // 3. Stok Kontrolü
             if (product.StockQuantity < detailDto.Quantity)
                 throw new Exception($"'{product.Name}' adlı ürün için yeterli stok yok. Mevcut Stok: {product.StockQuantity}");
 
-            // 4. İŞ KURALI (Stok Düşme): Ürün satıldığına göre stoğu azaltıyorum
+            // 4. Stok Düşme
             product.StockQuantity -= detailDto.Quantity;
             await _productRepository.UpdateAsync(product);
 
-            // Kalem toplamını (Miktar * Fiyat) genel toplama ekliyorum
-            calculatedTotal += (detailDto.Quantity * detailDto.UnitPrice);
+            // Güvenlik gereği birim fiyatı veritabanındaki gerçek ürün fiyatından alıyoruz
+            var unitPrice = product.Price;
+            calculatedTotal += (detailDto.Quantity * unitPrice);
 
-            // Sipariş satırını (OrderDetail) oluşturup Ana Siparişin listesine ekliyorum
             order.OrderDetails.Add(new OrderDetail
             {
                 Id = Guid.NewGuid(),
                 OrderId = orderId,
                 ProductId = detailDto.ProductId,
                 Quantity = detailDto.Quantity,
-                UnitPrice = detailDto.UnitPrice
+                UnitPrice = unitPrice
             });
         }
 
-        // 5. Arka planda güvenli şekilde hesapladığım genel toplamı fişe yazıyorum
+        // 5. Arka planda güvenli şekilde hesaplanan genel toplam
         order.TotalAmount = calculatedTotal;
 
-        // 6. Hazırlanan dolu fişi kaydetmesi için kilerciye yolluyorum
+        // 6. Kaydet
         await _orderRepository.AddAsync(order);
     }
 

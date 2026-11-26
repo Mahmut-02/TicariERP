@@ -32,9 +32,10 @@ export default function OrdersPage() {
     e.preventDefault();
     if (!currentAccountId || !productId) return alert("Lütfen müşteri ve ürün seçtiğinizden emin olun.");
 
-    const payload = {
+   const payload = {
       currentAccountId: currentAccountId,
-      orderItems: [{ productId: productId, quantity: Number(quantity) }]
+      orderDate: new Date().toISOString(),
+      details: [{ productId: productId, quantity: Number(quantity) }]
     };
 
     axios.post('http://localhost:5285/api/Orders', payload)
