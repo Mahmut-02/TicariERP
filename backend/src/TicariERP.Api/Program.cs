@@ -8,6 +8,7 @@ using TicariERP.Application.Services;
 using TicariERP.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using TicariERP.Infrastructure.Services;
+using Microsoft.OpenApi.Models;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,8 +27,31 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Description = "Başına Bearer ve bir boşluk koyarak token yapıştırın. Örnek: Bearer eyJhbG..."
+    });
 
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 builder.Services.AddScoped<TicariERP.Application.Interfaces.IProductRepository, TicariERP.Infrastructure.Repositories.ProductRepository>();
 builder.Services.AddScoped<TicariERP.Application.Interfaces.IProductService, TicariERP.Application.Services.ProductService>();
 builder.Services.AddValidatorsFromAssemblyContaining<TicariERP.Application.Validators.CreateProductDtoValidator>();
@@ -80,10 +104,17 @@ app.UseMiddleware<TicariERP.Api.Middlewares.ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger(c =>
+    if (app.Environment.IsDevelopment())
     {
-        c.SerializeAsV2 = true;
-    });
+        app.UseSwagger(c =>
+        {
+            c.SerializeAsV2 = true;
+        });
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "TicariERP API V1");
+        });
+    }
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "TicariERP API V1");
